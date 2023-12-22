@@ -6,10 +6,15 @@ const {
     body,
     validationResult
 } = require('express-validator');
+const validator = require('validator');
 
 const User = require('../models/User');
 
 require('dotenv').config();
+
+router.get('/',(req,res)=>{
+    console.log(process.env.SALT_ROUND)
+})
 
 // Sign Up using POST: "localhost:5000/api/auth/createuser"
 router.post('/createuser', [
@@ -31,12 +36,12 @@ router.post('/createuser', [
         })
         if (!user) {
             user = User(req.body);
-            const salt = await bcrypt.genSalt(process.env.SALT_ROUND);
+            const salt = await bcrypt.genSalt(10);
             const secPass = await bcrypt.hash(req.body.password, salt)
             user.password = secPass;
             user.save();
 
-            const token = jwt.sign(user._id.toString(), process.env.SECRET_KEY)
+            const token = jwt.sign(user._id.toString(),process.env.SECRET_KEY)
             res.status(200).send(token)
         } else {
             res.status(400).send("Account with this email already exists!");
@@ -48,29 +53,31 @@ router.post('/createuser', [
 
 // Sign In using POST: "localhost:5000/api/auth/signin"
 router.post('/signin', [
-    body("email").isEmail(),
     body("password").isLength({
         min: 6
     })
 ], async (req, res) => {
     const errors = validationResult(req);
     if (errors.isEmpty()) {
-        const user = await User.findOne({
-            email: req.body.email
-        })
+        let user;
+        if(validator.isEmail(req.body.username)){
+            user = await User.findOne({email: req.body.username})
+        }else{
+            user = await User.findOne({username: req.body.username})
+        }
         if (user) {
-            isAuthentic = await bcrypt.compare(req.body.password, user.password)
+            isAuthentic = await bcrypt.compare(req.body.password, user.password);
             if (isAuthentic) {
-                const token = jwt.sign(user._id.toString(), process.env.SECRET_KEY)
+                const token = jwt.sign(user._id.toString(),process.env.SECRET_KEY);
                 res.status(200).send(token);
             } else {
-                res.status(401).send("Incorrect username & password")
+                res.status(400).send("Incorrect username or password");
             }
         } else {
-            res.status(401).send("Incorrect username & password");
+            res.status(400).send("User doesn't exist");
         }
     } else {
-        res.status(400).send("Bad Request")
+        res.status(400).send(errors.array());
     }
 })
 
@@ -79,7 +86,7 @@ router.post('/getuser', async (req, res) => {
     const auth_token = req.headers['auth-token'];
     try {
         const userID = jwt.verify(auth_token, process.env.SECRET_KEY);
-        const user = await User.findById(userID)
+        const user = await User.findById(userID);
         res.send({
             "_id": user._id,
             "name": user.name,
@@ -99,7 +106,7 @@ router.post('/deleteuser', async (req, res) => {
     if (errors.isEmpty()) {
         const auth_token = req.headers['auth-token'];
         try {
-            let userID = jwt.verify(auth_token, process.env.SECRET_KEY);
+            let userID = jwt.verify(auth_token,process.env.SECRET_KEY);
             const user = await User.findByIdAndDelete(userID);
             if (user) {
                 res.status(200).send("User Deletion Successfull")
@@ -121,6 +128,7 @@ router.post('/getauther', async (req, res) => {
         res.send({
             "name": user.name,
             "username": user.username,
+            "email":user.email,
             "dpURL": user.dpURL,
             "date":user.date
         })
