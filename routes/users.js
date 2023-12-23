@@ -63,11 +63,9 @@ router.post('/signin', [
     if (errors.isEmpty()) {
         let user;
         if (validator.isEmail(req.body.username)) {
-            user = await User.findOne({email: req.body.username})
+            user = await User.findOne({email: req.body.username},{password:1})
         } else {
-            user = await User.findOne({
-                username: req.body.username
-            });
+            user = await User.findOne({username: req.body.username},{password:1});
         };
         
         if (user) {
@@ -105,38 +103,11 @@ router.post('/getuser', async (req, res) => {
     };
 });
 
-// Delete User using POST: "localhost:5000/api/auth/deleteuser"
-router.post('/deleteuser', async (req, res) => {
-    const errors = validationResult(req);
-    if (errors.isEmpty()) {
-        const auth_token = req.headers['auth-token'];
-        try {
-            let userID = jwt.verify(auth_token, process.env.SECRET_KEY);
-            const user = await User.findByIdAndDelete(userID);
-            if (user) {
-                res.status(200).send("User Deletion Successfull");
-            } else {
-                res.status(400).send("User doesn't exist");
-            }
-        } catch (err) {
-            res.status(500).send("Internal Server Error");
-        };
-    } else {
-        res.status(400).send("Bad Request");
-    };
-});
-
 // Get Auther Data using POST: "localhost:5000/api/auth/getauther"
 router.post('/getauther', async (req, res) => {
     try {
         const user = await User.findOne(req.query)
-        res.send({
-            "name": user.name,
-            "username": user.username,
-            "email": user.email,
-            "dpURL": user.dpURL,
-            "date": user.date
-        });
+        res.send(user);
     } catch (err) {
         res.status(500).send("Internal Server Error");
     };
