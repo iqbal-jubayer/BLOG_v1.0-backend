@@ -90,14 +90,7 @@ router.post('/getuser', async (req, res) => {
     try {
         const userID = jwt.verify(auth_token, process.env.SECRET_KEY);
         const user = await User.findById(userID);
-        res.send({
-            "_id": user._id,
-            "name": user.name,
-            "username": user.username,
-            "email": user.email,
-            "dpURL": user.dpURL,
-            "date": user.date
-        });
+        res.send(user);
     } catch (err) {
         res.status(500).send("Internal Server Error");
     };
