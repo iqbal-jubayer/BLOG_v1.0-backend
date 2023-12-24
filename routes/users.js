@@ -3,10 +3,7 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken')
-const {
-    body,
-    validationResult
-} = require('express-validator');
+const { body, validationResult } = require('express-validator');
 const validator = require('validator');
 
 require('dotenv').config(); // Parse .env file
@@ -33,8 +30,12 @@ router.post('/createuser', [
 ], async (req, res) => {
     const errors = validationResult(req);
     if (errors.isEmpty()) {
-        let user_email = await User.findOne({email: req.body.email});
-        let user_username = await User.findOne({username: req.body.username});
+        let user_email = await User.findOne({
+            email: req.body.email
+        });
+        let user_username = await User.findOne({
+            username: req.body.username
+        });
 
         if (!user_email & !user_username) {
             let user = User(req.body);
@@ -63,11 +64,19 @@ router.post('/signin', [
     if (errors.isEmpty()) {
         let user;
         if (validator.isEmail(req.body.username)) {
-            user = await User.findOne({email: req.body.username},{password:1})
+            user = await User.findOne({
+                email: req.body.username
+            }, {
+                password: 1
+            })
         } else {
-            user = await User.findOne({username: req.body.username},{password:1});
+            user = await User.findOne({
+                username: req.body.username
+            }, {
+                password: 1
+            });
         };
-        
+
         if (user) {
             isAuthentic = await bcrypt.compare(req.body.password, user.password);
             if (isAuthentic) {
@@ -116,7 +125,7 @@ router.post('/getmeaillist', async (req, res) => {
         email: 1,
         _id: 0
     });
-    
+
     usernames.map(e => {
         usernameList.push(e.username);
         emailList.push(e.email);
@@ -125,6 +134,76 @@ router.post('/getmeaillist', async (req, res) => {
         usernameList,
         emailList
     });
+});
+
+// Follow using POST: "localhost:5000/api/auth/follow"
+router.post('/follow', async (req, res) => {
+    const auth_token = req.headers['auth-token'];
+    const autherID = req.headers['auther-id'];
+    try {
+        const userID = jwt.verify(auth_token, process.env.SECRET_KEY);
+        const user = await User.findById(userID);
+        const auther = await User.findById(autherID);
+        if (!user.following.includes(autherID.toString())) {
+            user.following.push(autherID.toString());
+        }
+        if (!auther.followers.includes(user._id.toString())) {
+            auther.followers.push(user._id.toString());
+        }
+        user.save();
+        auther.save();
+        res.status(200).send("Followed Successfully!");
+    } catch (err) {
+        if (err.message == "invalid token") {
+            res.status(401).send("Invalid Authentication");
+        } else if (err.message.includes("Cast to ObjectId failed")) {
+            res.status(400).send("User Doesn't exist");
+        } else {
+            res.status(400).send(err);
+        }
+    }
+})
+
+// Unfollow using POST: "localhost:5000/api/auth/unfollow"
+router.post('/unfollow', async (req, res) => {
+    const auth_token = req.headers['auth-token'];
+    const autherID = req.headers['auther-id'];
+    try {
+        const userID = jwt.verify(auth_token, process.env.SECRET_KEY);
+        const user = await User.findById(userID);
+        const auther = await User.findById(autherID);
+        user.following = user.following.filter(e => {
+            return e != auther._id.toString();
+        })
+        auther.followers = auther.followers.filter(e => {
+            return e != userID.toString();
+        })
+        user.save();
+        auther.save();
+        // res.status(200).send({user,auther});
+        res.status(200).send("Unfollowed Successfully!");
+    } catch (err) {
+        if (err.message == "invalid token") {
+            res.status(401).send("Invalid Authentication");
+        } else if (err.message.includes("Cast to ObjectId failed")) {
+            res.status(400).send("User Doesn't exist");
+        } else {
+            res.status(400).send(err);
+        }
+    }
+})
+
+// Get username & dpURL from following list ID using POST: "localhost:5000/api/auth/unfollow"
+router.post('/getFollowing', async (req, res) => {
+    const auth_token = req.headers['auth-token'];
+    try {
+        const userID = jwt.verify(auth_token, process.env.SECRET_KEY);
+        const user = await User.findById(userID);
+        let following = await User.find({ "_id": user.following }, { username: 1, dpURL: 1 })
+        res.status(200).send(following);
+    } catch (err) {
+        res.status(400).send("Invalid Authentication");
+    }
 });
 
 module.exports = router;

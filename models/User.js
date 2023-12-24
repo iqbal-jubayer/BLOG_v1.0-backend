@@ -1,7 +1,4 @@
-const {
-    Schema,
-    model
-} = require('mongoose');
+const { Schema, model } = require('mongoose');
 
 const User = Schema({
     name: String,
@@ -18,6 +15,14 @@ const User = Schema({
         type: String,
         required: true,
         select: false
+    },
+    followers: {
+        type: Array,
+        default: []
+    },
+    following: {
+        type: Array,
+        default: []
     },
     date: {
         type: Date,
