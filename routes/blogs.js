@@ -32,12 +32,10 @@ router.get('/:blogID', async (req, res) => {
 });
 
 // Create New Blog using: POST "localhost:5000/api/blogs/createblog"
-router.post('/createblog', async (req, res) => {
+router.post('/createblog', async (req, res) => {``
     const auth_token = req.headers['auth-token'];
     const userID = jwt.verify(auth_token, process.env.SECRET_KEY);
-    const auther = await User.findById(userID, {
-        username: 1
-    });
+    const auther = await User.findById(userID, {username: 1});
     const blogInfo = {
         ...req.body,
         "auther": auther['username']
