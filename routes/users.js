@@ -3,12 +3,16 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken')
-const { body, validationResult } = require('express-validator');
+const {
+    body,
+    validationResult
+} = require('express-validator');
 const validator = require('validator');
 
 require('dotenv').config(); // Parse .env file
 
 const User = require('../models/User'); // IMPORT MODEL
+const Blog = require('../models/Blog')
 
 // FOR TRIAL
 router.get('/', async (req, res) => {
@@ -116,7 +120,7 @@ router.post('/getauther', async (req, res) => {
 });
 
 // Get List of existing Email and Username using POST: "localhost:5000/api/auth/getmeaillist"
-router.post('/getmeaillist', async (req, res) => {
+router.post('/getemaillist', async (req, res) => {
     let usernameList = [];
     let emailList = [];
 
@@ -199,11 +203,29 @@ router.post('/getFollowing', async (req, res) => {
     try {
         const userID = jwt.verify(auth_token, process.env.SECRET_KEY);
         const user = await User.findById(userID);
-        let following = await User.find({ "_id": user.following }, { username: 1, dpURL: 1 })
+        let following = await User.find({
+            "_id": user.following
+        }, {
+            username: 1,
+            dpURL: 1
+        })
         res.status(200).send(following);
     } catch (err) {
         res.status(400).send("Invalid Authentication");
     }
 });
+
+router.post('/updateuser', async (req, res) => {
+    const auth_token = req.headers['auth-token'];
+    try{
+        const userID = jwt.verify(auth_token, process.env.SECRET_KEY);
+        const user = await User.findById(userID);
+        await User.findByIdAndUpdate(userID,req.body);
+        await Blog.updateMany({auther:user.username},{auther:req.body.username});
+        res.send("User Updated Successfully!");
+    }catch(err){
+        res.send(err);
+    }
+})
 
 module.exports = router;
