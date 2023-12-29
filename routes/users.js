@@ -109,16 +109,6 @@ router.post('/getuser', async (req, res) => {
     };
 });
 
-// Get Auther Data using POST: "localhost:5000/api/auth/getauther"
-router.post('/getauther', async (req, res) => {
-    try {
-        const user = await User.findOne(req.query)
-        res.send(user);
-    } catch (err) {
-        res.status(500).send("Internal Server Error");
-    };
-});
-
 // Get List of existing Email and Username using POST: "localhost:5000/api/auth/getmeaillist"
 router.post('/getemaillist', async (req, res) => {
     let usernameList = [];
@@ -226,6 +216,13 @@ router.post('/updateuser', async (req, res) => {
     }catch(err){
         res.send(err);
     }
+})
+
+
+
+router.post('/getuserinfo',async(req,res)=>{
+    const user = await User.findOne(req.body.filter,req.body.query);
+    res.send(user);
 })
 
 module.exports = router;
