@@ -207,22 +207,36 @@ router.post('/getFollowing', async (req, res) => {
 
 router.post('/updateuser', async (req, res) => {
     const auth_token = req.headers['auth-token'];
-    try{
+    try {
         const userID = jwt.verify(auth_token, process.env.SECRET_KEY);
         const user = await User.findById(userID);
-        await User.findByIdAndUpdate(userID,req.body);
-        await Blog.updateMany({auther:user.username},{auther:req.body.username});
+        await User.findByIdAndUpdate(userID, req.body);
+        await Blog.updateMany({
+            auther: user.username
+        }, {
+            auther: req.body.username
+        });
         res.send("User Updated Successfully!");
-    }catch(err){
+    } catch (err) {
         res.send(err);
     }
 })
 
-
-
-router.post('/getuserinfo',async(req,res)=>{
-    const user = await User.findOne(req.body.filter,req.body.query);
+router.post('/getuserinfo', async (req, res) => {
+    const user = await User.findOne(req.body.filter, req.body.query);
     res.send(user);
+})
+
+router.post('/deleteuser', async (req, res) => {
+    const auth_token = req.headers['auth-token'];
+    try{
+        const userID = jwt.verify(auth_token, process.env.SECRET_KEY);
+        const user = await User.findByIdAndDelete(userID);
+        console.log(user);
+        res.status(200).send("Account Deleted Successfully!");
+    }catch(err){
+        res.status(400).send(err);
+    }
 })
 
 module.exports = router;
